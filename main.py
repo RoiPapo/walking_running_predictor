@@ -2,10 +2,12 @@ import pandas as pd
 import glob
 import random
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy.signal import find_peaks
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, train_test_split, RandomizedSearchCV, GridSearchCV
 from sklearn import metrics
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 def evaluate_pred(pred, y_val):
     accuracy = metrics.accuracy_score(y_val, y_pred=pred)
@@ -16,6 +18,10 @@ def evaluate_pred(pred, y_val):
     print("precision: ", precision)
     print("recall: ", recall)
     print("F1: ", F1)
+    cm = confusion_matrix(y_val, pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot()
+    plt.show()
 
 
 def tree_fitter(x_train, y_train, x_val, y_val):
@@ -132,14 +138,16 @@ def main():
                 data = np.array(value).astype(np.float64)
                 peaks, _ = find_peaks(data)
                 num_peaks = len(peaks)
+                avg=np.mean(data)
 
                 features_of_one_file.append(num_peaks)
+                features_of_one_file.append(avg)
 
         sample_rate = np.mean(list(all_data[i].values())[0])
         num_samples = len(list(all_data[i].values())[-1])
         feature_vec_of_file_i = [sample_rate] + features_of_one_file + [all_actual_steps[i]] + [num_samples]
         all_files_features.append(np.array(feature_vec_of_file_i).astype(np.float64))
-    x_train, x_val, y_train, y_val = train_test_split(np.array(all_files_features), labels, test_size=0.2,
+    x_train, x_val, y_train, y_val = train_test_split(np.array(all_files_features), labels, test_size=0.3,
                                                       random_state=42)
     preds =tree_fitter(x_train, y_train, x_val, y_val)
     print(preds)

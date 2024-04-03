@@ -12,6 +12,30 @@ from sklearn.model_selection import train_test_split
 from joblib import dump, load
 
 
+def evaluate_pred_reg(pred, y_val):
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    """
+    Evaluate the performance of a regression model.
+
+    Args:
+    - pred: Predicted values (numpy array)
+    - y_val: True target values (numpy array)
+
+    Returns:
+    - mae: Mean Absolute Error
+    - mse: Mean Squared Error
+    - rmse: Root Mean Squared Error
+    - r2: R-squared
+    """
+    y_val = [float(n) for n in y_val]
+    mae = mean_absolute_error(y_val, pred)
+    mse = mean_squared_error(y_val, pred)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y_val, pred)
+    print("mae: ", mae , "mse: ", mse, "rmse: ", rmse, "r2: ", r2)
+
+
+    # return mae, mse, rmse, r2
 def evaluate_pred(pred, y_val):
     accuracy = metrics.accuracy_score(y_val, y_pred=pred)
     precision = metrics.precision_score(y_val, y_pred=pred)
@@ -134,6 +158,32 @@ def train():
     # preds =tree_fitter(x_train, y_train, x_val, y_val)
     # print(preds)
 
+def predict_using_RandomForestRegressor(x_train, y_train, x_val, y_val):
+    rf = RandomForestRegressor()
+    rf.fit(x_train, y_train)
+    y_pred = rf.predict(x_val)
+    evaluate_pred_reg(y_pred, y_val)
+
+
+def train2(ai_features):
+    csv_files = glob.glob(f'shoots_ds//**.csv')
+    all_files_features, labels = create_dataset_from_csv_list(csv_files, train=True)
+    labels = [csv_name.split("_")[-1][:-4] for csv_name in csv_files]
+    # Initialize a list to hold the data from all files
+    for extra_features in ai_features:
+        all_files_features = np.concatenate((all_files_features, extra_features[:, np.newaxis]), axis=1)
+
+    # Process each file and append the result to `all_data`
+
+    x_train, x_val, y_train, y_val = train_test_split(np.array(all_files_features), labels, test_size=0.2,
+                                                      random_state=42)
+    predict_using_RandomForestRegressor(np.array(all_files_features), labels, x_val, y_val)
+    # print(f"$$$$$$$$$$$---{ai_feature}---$$$$$$$$$$$")
+    # random_forest_binary_classifier(np.array(all_files_features), labels, x_val, y_val, ai_feature)
+
+
+    print("moo")
+
 def test(csv_src):
 
     for ai_feature in ["yashar_test", "strongness_test", "shaky_test", "accuracy_test"]:
@@ -145,12 +195,14 @@ def test(csv_src):
         y_pred = rf.predict(all_files_features)
 
         print(f"$$$$$$$$$$$---{ai_feature}---$$$$$$$$$$$")
-        print(y_pred)
+        # print(y_pred)
+        yield y_pred
 
 
 
 
 if __name__ == '__main__':
     # train()
-    csv_file = glob.glob(f'shoots_ds/**.csv')[59]
-    test(csv_file)
+    csv_file = glob.glob(f'shoots_ds/**.csv')
+    preds= list(test(csv_file))
+    train2(preds)
